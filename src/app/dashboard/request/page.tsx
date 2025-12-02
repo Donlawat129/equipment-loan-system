@@ -179,6 +179,7 @@ export default function CreateRequestPage() {
 
       // 3) บันทึกลง loanRequests
       await addDoc(collection(db, "loanRequests"), {
+        userId: user.uid,               // 👈 เพิ่ม field นี้ให้ตรงกับ rules
         createdByUid: user.uid,
         createdByEmail: user.email ?? "",
         status: "pending",
@@ -335,6 +336,7 @@ export default function CreateRequestPage() {
               </div>
             )}
           </div>
+
           <div className="rounded-2xl border border-slate-100 bg-white p-4 space-y-4">
             {/* เหตุผล */}
             <div>
@@ -362,6 +364,7 @@ export default function CreateRequestPage() {
               />
             </div>
           </div>
+
           <div className="pt-2">
             <button
               type="submit"

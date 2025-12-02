@@ -145,6 +145,13 @@ function AdminSection() {
           >
             สร้างคำขอเบิกใหม่
           </Link>
+
+          <Link
+            href="/dashboard/history"
+            className="inline-flex items-center rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-slate-700 border border-slate-200 hover:bg-slate-50 shadow-sm"
+          >
+            ประวัติการเบิกของฉัน
+          </Link>
         </div>
       </div>
 
@@ -178,6 +185,13 @@ function StaffSection() {
             className="inline-flex items-center rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 shadow-sm"
           >
             สร้างคำขอเบิกใหม่
+          </Link>
+
+          <Link
+            href="/dashboard/history"
+            className="inline-flex items-center rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-slate-700 border border-slate-200 hover:bg-slate-50 shadow-sm"
+          >
+            ประวัติการเบิกของฉัน
           </Link>
         </div>
       </div>

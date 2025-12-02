@@ -48,7 +48,6 @@ type EquipmentDoc = {
   availableQuantity?: number;
 };
 
-// 👇 type สำหรับ document ใน loanRequests แทนการใช้ any
 type LoanRequestDoc = {
   createdByUid: string;
   createdByEmail?: string;
@@ -73,7 +72,7 @@ export default function ApprovalsPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
-  // --------- เช็ค login ----------
+  // --------- เช็ค login + role ----------
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (firebaseUser) => {
       if (!firebaseUser) {
@@ -155,9 +154,7 @@ export default function ApprovalsPage() {
     );
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   if (!isAdmin) {
     return (
@@ -204,7 +201,6 @@ export default function ApprovalsPage() {
           throw new Error("คำขอนี้ถูกดำเนินการไปแล้ว");
         }
 
-        // เช็คสต็อกทีละรายการ
         for (const item of reqData.items) {
           const eqRef = doc(db, "equipment", item.equipmentId);
           const eqSnap = await tx.get(eqRef);
@@ -231,7 +227,6 @@ export default function ApprovalsPage() {
           });
         }
 
-        // อัปเดตสถานะคำขอ
         tx.update(reqRef, {
           status: "approved",
           approvedByUid: user.uid,
@@ -239,7 +234,6 @@ export default function ApprovalsPage() {
         });
       });
 
-      // เอาออกจาก list บนหน้าจอ
       setRequests((prev) => prev.filter((r) => r.id !== req.id));
     } catch (err) {
       console.error("Approve error:", err);
@@ -282,12 +276,25 @@ export default function ApprovalsPage() {
   return (
     <main className="min-h-screen bg-linear-to-br from-sky-50 via-indigo-50 to-slate-100 px-4 py-8">
       <div className="max-w-4xl mx-auto bg-white/80 backdrop-blur border border-white/70 shadow-xl shadow-indigo-100 rounded-2xl px-6 py-6 space-y-4">
-        <h1 className="text-xl font-semibold">
-          อนุมัติคำขอเบิก / กู้ยืมอุปกรณ์
-        </h1>
-        <p className="text-sm text-gray-600">
-          ผู้ดูแลระบบ: <span className="font-medium">{user.email}</span>
-        </p>
+        {/* 👇 ส่วนหัว + ปุ่มกลับ Dashboard */}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-semibold">
+              อนุมัติคำขอเบิก / กู้ยืมอุปกรณ์
+            </h1>
+            <p className="text-sm text-gray-600">
+              ผู้ดูแลระบบ: <span className="font-medium">{user.email}</span>
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => router.push("/dashboard")}
+            className="inline-flex items-center rounded-lg border border-slate-200 bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 shadow-sm"
+          >
+            ← กลับหน้า Dashboard
+          </button>
+        </div>
 
         {error && (
           <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-md px-3 py-2">
