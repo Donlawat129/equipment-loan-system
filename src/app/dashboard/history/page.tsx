@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
@@ -75,14 +75,10 @@ const STATUS_LABEL: Record<LoanStatus, string> = {
 };
 
 const STATUS_CLASS: Record<LoanStatus, string> = {
-  pending:
-    "bg-amber-50 text-amber-700 border-amber-100",
-  approved:
-    "bg-emerald-50 text-emerald-700 border-emerald-100",
-  rejected:
-    "bg-rose-50 text-rose-700 border-rose-100",
-  returned:
-    "bg-slate-50 text-slate-600 border-slate-200",
+  pending: "bg-amber-50 text-amber-700 border-amber-100",
+  approved: "bg-emerald-50 text-emerald-700 border-emerald-100",
+  rejected: "bg-rose-50 text-rose-700 border-rose-100",
+  returned: "bg-slate-50 text-slate-600 border-slate-200",
 };
 
 export default function LoanHistoryPage() {
@@ -90,6 +86,56 @@ export default function LoanHistoryPage() {
   const [rows, setRows] = useState<LoanRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [searchText, setSearchText] = useState("");
+  const [statusFilter, setStatusFilter] = useState<LoanStatus | "all">("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  // กรองข้อมูลตาม search / filter / date
+  const filteredRows = useMemo(() => {
+    return rows.filter((row) => {
+      // filter สถานะ
+      if (statusFilter !== "all" && row.status !== statusFilter) {
+        return false;
+      }
+
+      // filter วันที่เริ่มต้น
+      if (dateFrom) {
+        const from = new Date(dateFrom);
+        from.setHours(0, 0, 0, 0);
+        const createdTime = row.createdAt?.getTime();
+        if (createdTime == null || createdTime < from.getTime()) {
+          return false;
+        }
+      }
+
+      // filter วันที่สิ้นสุด
+      if (dateTo) {
+        const to = new Date(dateTo);
+        to.setHours(23, 59, 59, 999);
+        const createdTime = row.createdAt?.getTime();
+        if (createdTime == null || createdTime > to.getTime()) {
+          return false;
+        }
+      }
+
+      // filter คำค้นหา
+      const trimmed = searchText.trim().toLowerCase();
+      if (!trimmed) {
+        return true;
+      }
+
+      const itemsText = row.items
+        .map((it) => `${it.equipmentName} ${it.code ?? ""}`)
+        .join(" ");
+      const noteText = row.note ?? "";
+
+      const haystack = `${itemsText} ${noteText}`.toLowerCase();
+
+      return haystack.includes(trimmed);
+    });
+  }, [rows, statusFilter, dateFrom, dateTo, searchText]);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -182,7 +228,7 @@ export default function LoanHistoryPage() {
             <h1 className="mt-2 text-xl font-semibold text-slate-900">
               ประวัติการเบิก / กู้ยืมของฉัน
             </h1>
-            <p className="text-sm text-slate-600 mt-1">
+            <p className="mt-1 text-sm text-slate-600">
               ดูรายการที่คุณเคยส่งคำขอเบิกอุปกรณ์ พร้อมสถานะอนุมัติ และรายละเอียดต่าง ๆ
             </p>
           </div>
@@ -194,6 +240,65 @@ export default function LoanHistoryPage() {
             >
               ← กลับหน้า Dashboard
             </Link>
+          </div>
+        </div>
+
+        {/* Filter bar */}
+        <div className="mt-4 flex flex-wrap items-end gap-3">
+          <div className="flex-1 min-w-[200px]">
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              ค้นหาชื่ออุปกรณ์ / รหัส / เหตุผล
+            </label>
+            <input
+              type="text"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+              placeholder="เช่น โน้ตบุ๊ก, PJ-001 หรือ คำอธิบาย"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              สถานะ
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) =>
+                setStatusFilter(e.target.value as LoanStatus | "all")
+              }
+              className="rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+            >
+              <option value="all">ทุกสถานะ</option>
+              <option value="pending">{STATUS_LABEL.pending}</option>
+              <option value="approved">{STATUS_LABEL.approved}</option>
+              <option value="rejected">{STATUS_LABEL.rejected}</option>
+              <option value="returned">{STATUS_LABEL.returned}</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              จากวันที่
+            </label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              ถึงวันที่
+            </label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+            />
           </div>
         </div>
 
@@ -221,9 +326,18 @@ export default function LoanHistoryPage() {
           </div>
         )}
 
-        {!loading && !error && rows.length > 0 && (
+        {!loading &&
+          !error &&
+          rows.length > 0 &&
+          filteredRows.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-white/80 px-4 py-6 text-center text-sm text-slate-500">
+              ไม่พบรายการที่ตรงกับเงื่อนไขการค้นหา/ตัวกรอง
+            </div>
+          )}
+
+        {!loading && !error && filteredRows.length > 0 && (
           <div className="space-y-3">
-            {rows.map((row) => (
+            {filteredRows.map((row) => (
               <div
                 key={row.id}
                 className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm space-y-2"
@@ -259,7 +373,7 @@ export default function LoanHistoryPage() {
                   </span>
                 </div>
 
-                <div className="text-xs text-slate-500 space-y-0.5">
+                <div className="space-y-0.5 text-xs text-slate-500">
                   <p>
                     ขอเบิกเมื่อ:{" "}
                     <span className="font-medium text-slate-700">

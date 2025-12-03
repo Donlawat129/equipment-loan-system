@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# General Logs (covers any other log files not specifically named)
+*.log
+
+# Build output alternatives (just in case tools output here)
+/dist
+
+# Linter Cache (highly recommended to ignore)
+.eslintcache
