@@ -1,3 +1,4 @@
+// src/app/dashboard/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -140,6 +141,13 @@ function AdminSection() {
           </Link>
 
           <Link
+            href="/dashboard/equipment"
+            className="inline-flex items-center rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-700 shadow-sm"
+          >
+            จัดการอุปกรณ์ในคลัง
+          </Link>
+
+          <Link
             href="/dashboard/request"
             className="inline-flex items-center rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 shadow-sm"
           >
@@ -152,6 +160,14 @@ function AdminSection() {
           >
             ประวัติการเบิกของฉัน
           </Link>
+
+          {/* ✅ ปุ่มใหม่: ดูประวัติทั้งหมด (ทุกผู้ใช้) */}
+          <Link
+            href="/dashboard/history/all"
+            className="inline-flex items-center rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-600 shadow-sm"
+          >
+            ดูประวัติทั้งหมด (ทุกผู้ใช้)
+          </Link>
         </div>
       </div>
 
@@ -162,7 +178,7 @@ function AdminSection() {
         <ul className="list-disc list-inside text-sm text-slate-700 space-y-1">
           <li>ดูและอนุมัติคำขอเบิก/กู้ยืมอุปกรณ์</li>
           <li>จัดการคลังอุปกรณ์ (เพิ่ม / ลด / ปรับจำนวน)</li>
-          <li>จัดการสิทธิ์ผู้ใช้ (กำหนดให้ใครเป็น admin / staff)</li>
+          <li>ดูประวัติคำขอของผู้ใช้ทั้งหมดในระบบ</li>
         </ul>
       </div>
     </div>
