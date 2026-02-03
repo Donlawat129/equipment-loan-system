@@ -1,5 +1,5 @@
 "use client";
-
+// src/app/dashboard/history/all/page.tsx
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -37,6 +37,10 @@ type LoanRow = {
   createdAt: Date | null;
   neededDate: Date | null;
   note: string;
+
+  academicYearCode?: string;
+  requestDate?: string;
+  departmentCode?: string;
 };
 
 type LoanDocData = {
@@ -52,6 +56,10 @@ type LoanDocData = {
   createdAt?: Timestamp;
   expectedReturnDate?: Timestamp | string | null;
   reason?: string;
+
+  academicYearCode?: string;
+  requestDate?: string;
+  departmentCode?: string;
 };
 
 type UserRole = "admin" | "staff";
@@ -111,6 +119,9 @@ export default function AllLoanHistoryPage() {
   const [statusFilter, setStatusFilter] = useState<LoanStatus | "all">("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+
+  const [academicYearFilter, setAcademicYearFilter] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("");
 
   // ---------- เช็ค login + role = admin ----------
   useEffect(() => {
@@ -197,6 +208,10 @@ export default function AllLoanHistoryPage() {
             createdAt,
             neededDate,
             note: data.reason ?? "",
+
+            academicYearCode: data.academicYearCode ?? "",
+            requestDate: data.requestDate ?? "",
+            departmentCode: data.departmentCode ?? "",
           };
         });
 
@@ -221,6 +236,18 @@ export default function AllLoanHistoryPage() {
     return rows.filter((row) => {
       // filter สถานะ
       if (statusFilter !== "all" && row.status !== statusFilter) {
+        return false;
+      }
+
+      // filter ปีการศึกษา
+      const yearFilter = academicYearFilter.trim().toLowerCase();
+      if (yearFilter && !(row.academicYearCode ?? "").toLowerCase().includes(yearFilter)) {
+        return false;
+      }
+
+      // filter แผนก
+      const deptFilter = departmentFilter.trim().toLowerCase();
+      if (deptFilter && !(row.departmentCode ?? "").toLowerCase().includes(deptFilter)) {
         return false;
       }
 
@@ -253,12 +280,23 @@ export default function AllLoanHistoryPage() {
         .map((it) => `${it.equipmentName} ${it.code ?? ""}`)
         .join(" ");
       const noteText = row.note ?? "";
+      const docInfoText = `${row.academicYearCode ?? ""} ${
+        row.departmentCode ?? ""
+      } ${row.requestDate ?? ""}`;
 
-      const haystack = `${requesterText} ${itemsText} ${noteText}`.toLowerCase();
+      const haystack = `${requesterText} ${itemsText} ${noteText} ${docInfoText}`.toLowerCase();
 
       return haystack.includes(trimmed);
     });
-  }, [rows, statusFilter, dateFrom, dateTo, searchText]);
+  }, [
+    rows,
+    statusFilter,
+    dateFrom,
+    dateTo,
+    searchText,
+    academicYearFilter,
+    departmentFilter,
+  ]);
 
   if (checkingAuth || checkingRole) {
     return (
@@ -296,7 +334,7 @@ export default function AllLoanHistoryPage() {
             </h1>
             <p className="mt-1 text-sm text-slate-600">
               ดูประวัติคำขอทั้งหมดในระบบ พร้อมฟิลเตอร์ค้นหาตามผู้ขอ ชื่ออุปกรณ์
-              สถานะ และช่วงวันที่
+              ปีการศึกษา แผนก สถานะ และช่วงวันที่
             </p>
           </div>
 
@@ -311,18 +349,69 @@ export default function AllLoanHistoryPage() {
         </div>
 
         {/* Filter bar */}
-        <div className="mt-4 flex flex-wrap items-end gap-3">
-          <div className="flex-1 min-w-[220px]">
+        <div className="mt-4 grid gap-3 md:grid-cols-3 lg:grid-cols-5 items-end">
+          <div className="col-span-2">
             <label className="mb-1 block text-xs font-medium text-slate-600">
-              ค้นหาผู้ขอ / ชื่ออุปกรณ์ / รหัส / เหตุผล
+              ค้นหาผู้ขอ / ชื่ออุปกรณ์ / รหัส / เหตุผล / ปีการศึกษา / แผนก
             </label>
             <input
               type="text"
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               className="w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-              placeholder="เช่น user@example.com, โน้ตบุ๊ก, PJ-001 หรือ คำอธิบาย"
+              placeholder="เช่น user@example.com, โน้ตบุ๊ก, PJ-001, 2568, IT01"
             />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              ปีการศึกษา
+            </label>
+            <input
+              type="text"
+              value={academicYearFilter}
+              onChange={(e) => setAcademicYearFilter(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+              placeholder="เช่น 2568"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              รหัสแผนก
+            </label>
+            <input
+              type="text"
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+              placeholder="เช่น IT01"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                จากวันที่ (สร้างคำขอ)
+              </label>
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                ถึงวันที่ (สร้างคำขอ)
+              </label>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+              />
+            </div>
           </div>
 
           <div>
@@ -334,7 +423,7 @@ export default function AllLoanHistoryPage() {
               onChange={(e) =>
                 setStatusFilter(e.target.value as LoanStatus | "all")
               }
-              className="rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+              className="w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
             >
               <option value="all">ทุกสถานะ</option>
               <option value="pending">{STATUS_LABEL.pending}</option>
@@ -343,30 +432,6 @@ export default function AllLoanHistoryPage() {
               <option value="cancelled">{STATUS_LABEL.cancelled}</option>
               <option value="returned">{STATUS_LABEL.returned}</option>
             </select>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">
-              จากวันที่
-            </label>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">
-              ถึงวันที่
-            </label>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-            />
           </div>
         </div>
 
@@ -407,7 +472,7 @@ export default function AllLoanHistoryPage() {
                     วันที่ขอ
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600">
-                    ผู้ขอ
+                    ผู้ขอ / ปีการศึกษา / แผนก
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600">
                     รายการอุปกรณ์
@@ -416,7 +481,7 @@ export default function AllLoanHistoryPage() {
                     สถานะ
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600">
-                    วันที่คาดว่าจะคืน
+                    วันที่เอกสาร / คาดว่าจะคืน
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-slate-600">
                     เหตุผล / หมายเหตุ
@@ -441,6 +506,12 @@ export default function AllLoanHistoryPage() {
                         {row.createdByEmail && (
                           <div className="text-[11px] text-slate-500">
                             UID: {row.createdByUid}
+                          </div>
+                        )}
+                        {(row.academicYearCode || row.departmentCode) && (
+                          <div className="text-[11px] text-slate-500 mt-0.5">
+                            ปีการศึกษา: {row.academicYearCode || "-"} · แผนก:{" "}
+                            {row.departmentCode || "-"}
                           </div>
                         )}
                       </td>
@@ -476,9 +547,17 @@ export default function AllLoanHistoryPage() {
                         </span>
                       </td>
                       <td className="px-3 py-2 align-top text-xs text-slate-700">
-                        {row.neededDate
-                          ? formatThaiDate(row.neededDate)
-                          : "-"}
+                        {row.requestDate && (
+                          <div className="mb-1">
+                            วันที่เอกสาร: {row.requestDate}
+                          </div>
+                        )}
+                        <div>
+                          คาดว่าจะคืน:{" "}
+                          {row.neededDate
+                            ? formatThaiDate(row.neededDate)
+                            : "-"}
+                        </div>
                       </td>
                       <td className="px-3 py-2 align-top text-xs text-slate-700">
                         {row.note || "-"}

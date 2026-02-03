@@ -1,4 +1,4 @@
-// src\app\dashboard\approvals\page.tsx
+// src/app/dashboard/approvals/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -42,6 +42,10 @@ type LoanRequest = {
   reason?: string;
   expectedReturnDate?: string | null;
   createdAt?: Timestamp;
+
+  academicYearCode?: string;
+  requestDate?: string;
+  departmentCode?: string;
 };
 
 type EquipmentDoc = {
@@ -57,6 +61,10 @@ type LoanRequestDoc = {
   reason?: string;
   expectedReturnDate?: string | null;
   createdAt?: Timestamp;
+
+  academicYearCode?: string;
+  requestDate?: string;
+  departmentCode?: string;
 };
 
 export default function ApprovalsPage() {
@@ -134,6 +142,10 @@ export default function ApprovalsPage() {
             reason: data.reason ?? "",
             expectedReturnDate: data.expectedReturnDate ?? null,
             createdAt: data.createdAt,
+
+            academicYearCode: data.academicYearCode ?? "",
+            requestDate: data.requestDate ?? "",
+            departmentCode: data.departmentCode ?? "",
           };
         });
 
@@ -330,6 +342,17 @@ export default function ApprovalsPage() {
                     <div className="text-xs text-gray-500">
                       สร้างเมื่อ: {formatDateTime(req.createdAt)}
                     </div>
+                    {(req.academicYearCode || req.departmentCode) && (
+                      <div className="text-xs text-gray-500">
+                        ปีการศึกษา: {req.academicYearCode || "-"} · แผนก:{" "}
+                        {req.departmentCode || "-"}
+                      </div>
+                    )}
+                    {req.requestDate && (
+                      <div className="text-xs text-gray-500">
+                        วันที่เอกสาร: {req.requestDate}
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <button

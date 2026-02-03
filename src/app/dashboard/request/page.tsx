@@ -1,4 +1,4 @@
-// src\app\dashboard\request\page.tsx
+// src/app/dashboard/request/page.tsx
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
@@ -26,7 +26,16 @@ type Equipment = {
 type RequestItemForm = {
   equipmentId: string;
   quantity: number | "";
+  /** ข้อความที่พิมพ์ในช่องค้นหา/เลือกอุปกรณ์ของแต่ละแถว */
+  keyword: string;
 };
+
+// helper วันที่วันนี้แบบ YYYY-MM-DD
+function todayYMD(): string {
+  const d = new Date();
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
 
 export default function CreateRequestPage() {
   const router = useRouter();
@@ -37,14 +46,22 @@ export default function CreateRequestPage() {
   const [loadingEquipment, setLoadingEquipment] = useState(true);
 
   const [items, setItems] = useState<RequestItemForm[]>([
-    { equipmentId: "", quantity: 1 },
+    { equipmentId: "", quantity: 1, keyword: "" },
   ]);
+
+  // 🔹 ฟิลด์ใหม่
+  const [academicYearCode, setAcademicYearCode] = useState("");
+  const [requestDate, setRequestDate] = useState(todayYMD());
+  const [departmentCode, setDepartmentCode] = useState("");
 
   const [reason, setReason] = useState("");
   const [expectedReturnDate, setExpectedReturnDate] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // แถวไหนที่กำลังเปิด dropdown อยู่ (ใช้ควบคุม auto-complete)
+  const [activeRowIndex, setActiveRowIndex] = useState<number | null>(null);
 
   // --------- เช็ค login ----------
   useEffect(() => {
@@ -116,7 +133,10 @@ export default function CreateRequestPage() {
   }
 
   function addItemRow() {
-    setItems((prev) => [...prev, { equipmentId: "", quantity: 1 }]);
+    setItems((prev) => [
+      ...prev,
+      { equipmentId: "", quantity: 1, keyword: "" },
+    ]);
   }
 
   function removeItemRow(index: number) {
@@ -138,7 +158,32 @@ export default function CreateRequestPage() {
     setSuccess(null);
 
     try {
-      // 1) เตรียมรายการที่กรอกจริง (กรองแถวว่างออก)
+      // ✅ validate ฟิลด์ใหม่
+      if (!academicYearCode.trim()) {
+        setError("กรุณากรอกรหัสปีการศึกษา");
+        return;
+      }
+      if (!requestDate) {
+        setError("กรุณาเลือกวันที่เอกสาร");
+        return;
+      }
+      if (!departmentCode.trim()) {
+        setError("กรุณากรอกรหัสแผนก");
+        return;
+      }
+
+      // เช็คว่ามีแถวที่พิมพ์ keyword แต่ยังไม่เลือกอุปกรณ์ไหม
+      const hasTypingButNoSelect = items.some(
+        (it) =>
+          it.keyword.trim() !== "" &&
+          (it.equipmentId == null || it.equipmentId.trim() === "")
+      );
+      if (hasTypingButNoSelect) {
+        setError("กรุณาเลือกอุปกรณ์จากรายการแนะนำให้ครบทุกแถว");
+        return;
+      }
+
+      // 1) เตรียมรายการที่กรอกจริง (กรองแถวว่างออก โดยดูจาก equipmentId)
       const filledItems = items
         .filter(
           (it) =>
@@ -178,9 +223,9 @@ export default function CreateRequestPage() {
         };
       });
 
-      // 3) บันทึกลง loanRequests
+      // 3) บันทึกลง loanRequests (เพิ่มฟิลด์ใหม่ไปด้วย)
       await addDoc(collection(db, "loanRequests"), {
-        userId: user.uid,               // 👈 เพิ่ม field นี้ให้ตรงกับ rules
+        userId: user.uid,
         createdByUid: user.uid,
         createdByEmail: user.email ?? "",
         status: "pending",
@@ -188,13 +233,23 @@ export default function CreateRequestPage() {
         reason: reason.trim(),
         expectedReturnDate: expectedReturnDate || null,
         createdAt: serverTimestamp(),
+
+        // 🔹 ฟิลด์เอกสารใหม่
+        academicYearCode: academicYearCode.trim(),
+        requestDate, // string YYYY-MM-DD
+        departmentCode: departmentCode.trim(),
       });
 
       setSuccess("ส่งคำขอเบิกเรียบร้อยแล้ว");
+
       // reset ฟอร์ม
-      setItems([{ equipmentId: "", quantity: 1 }]);
+      setItems([{ equipmentId: "", quantity: 1, keyword: "" }]);
       setReason("");
       setExpectedReturnDate("");
+      setRequestDate(todayYMD());
+      // ถ้าอยากเคลียร์ปี/แผนกด้วยก็ uncomment 2 บรรทัดล่างนี้
+      // setAcademicYearCode("");
+      // setDepartmentCode("");
     } catch (err) {
       console.error("Create request error:", err);
       const message =
@@ -219,7 +274,8 @@ export default function CreateRequestPage() {
               ฟอร์มสร้างคำขอเบิก / กู้ยืมอุปกรณ์
             </h1>
             <p className="text-xs text-slate-500">
-              เลือกอุปกรณ์ ระบุจำนวน และเหตุผลในการเบิก ก่อนส่งให้ผู้ดูแลอนุมัติ
+              กรอกรายละเอียดเอกสาร เลือกอุปกรณ์ ระบุจำนวน และเหตุผลในการเบิก
+              ก่อนส่งให้ผู้ดูแลอนุมัติ
             </p>
           </div>
           <button
@@ -249,14 +305,67 @@ export default function CreateRequestPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* รายการอุปกรณ์ */}
-          <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4 space-y-3">
+          {/* 🔹 ส่วนข้อมูลเอกสาร (ปีการศึกษา / วันที่เอกสาร / รหัสแผนก) */}
+          <div className="rounded-2xl border border-slate-100 bg-white p-4 space-y-3">
             <h2 className="text-sm font-semibold text-slate-900">
-              รายการอุปกรณ์
+              ข้อมูลเอกสารคำขอ
             </h2>
+            <div className="grid gap-3 md:grid-cols-3">
+              <div>
+                <label className="block text-xs font-medium mb-1 text-slate-700">
+                  รหัสปีการศึกษา
+                </label>
+                <input
+                  type="text"
+                  className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-sky-200"
+                  value={academicYearCode}
+                  onChange={(e) => setAcademicYearCode(e.target.value)}
+                  placeholder="เช่น 2568"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium mb-1 text-slate-700">
+                  วันที่เอกสาร
+                </label>
+                <input
+                  type="date"
+                  className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-sky-200"
+                  value={requestDate}
+                  onChange={(e) => setRequestDate(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium mb-1 text-slate-700">
+                  รหัสแผนก
+                </label>
+                <input
+                  type="text"
+                  className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-sky-200"
+                  value={departmentCode}
+                  onChange={(e) => setDepartmentCode(e.target.value)}
+                  placeholder="เช่น IT01, SCI-ENG"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* รายการอุปกรณ์ (auto-complete ต่อแถว) */}
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-slate-900">
+                รายการอุปกรณ์
+              </h2>
+            </div>
 
             {loadingEquipment ? (
-              <p className="text-sm text-gray-500">กำลังโหลดรายการอุปกรณ์...</p>
+              <p className="text-sm text-gray-500">
+                กำลังโหลดรายการอุปกรณ์...
+              </p>
             ) : equipmentList.length === 0 ? (
               <p className="text-sm text-red-600">
                 ยังไม่มีรายการอุปกรณ์ในระบบ กรุณาติดต่อผู้ดูแล
@@ -268,44 +377,129 @@ export default function CreateRequestPage() {
                     (e) => e.id === item.equipmentId
                   );
 
+                  const displayText =
+                    item.keyword ||
+                    (selectedEq
+                      ? `${selectedEq.name}${
+                          selectedEq.code ? ` (${selectedEq.code})` : ""
+                        }`
+                      : "");
+
+                  const keywordLower = item.keyword.trim().toLowerCase();
+
+                  const suggestions =
+                    keywordLower === ""
+                      ? equipmentList
+                      : equipmentList.filter((eq) => {
+                          const name = eq.name.toLowerCase();
+                          const code = (eq.code ?? "").toLowerCase();
+                          return (
+                            name.includes(keywordLower) ||
+                            code.includes(keywordLower)
+                          );
+                        });
+
                   return (
                     <div
                       key={index}
-                      className="flex flex-wrap items-center gap-2 border rounded-md p-2"
+                      className="flex flex-wrap items-center gap-2 border rounded-md p-2 bg-white/60"
                     >
-                      <select
-                        className="flex-1 min-w-[180px] border rounded-md px-2 py-1 text-sm"
-                        value={item.equipmentId}
-                        onChange={(e) =>
-                          updateItem(index, { equipmentId: e.target.value })
-                        }
-                        required
-                      >
-                        <option value="">-- เลือกอุปกรณ์ --</option>
-                        {equipmentList.map((eq) => (
-                          <option key={eq.id} value={eq.id}>
-                            {eq.name} {eq.code ? `(${eq.code})` : ""} - เหลือ{" "}
-                            {eq.availableQuantity}
-                          </option>
-                        ))}
-                      </select>
+                      {/* Auto-complete input */}
+                      <div className="relative flex-1 min-w-[220px]">
+                        <label className="block text-[11px] font-medium text-slate-600 mb-0.5">
+                          อุปกรณ์
+                        </label>
+                        <input
+                          type="text"
+                          className="w-full border rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-200"
+                          value={displayText}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            updateItem(index, {
+                              keyword: val,
+                              // เคลียร์ selection เดิมจนกว่าจะเลือกใหม่จาก list
+                              equipmentId: "",
+                            });
+                            setActiveRowIndex(index);
+                          }}
+                          onFocus={() => setActiveRowIndex(index)}
+                          onBlur={() => {
+                            // หน่วงนิดนึงให้คลิกเลือก option ได้ก่อน blur
+                            setTimeout(() => {
+                              setActiveRowIndex((prev) =>
+                                prev === index ? null : prev
+                              );
+                            }, 100);
+                          }}
+                          placeholder="พิมพ์ชื่อหรือรหัส เช่น Notebook, PJ-001"
+                        />
 
-                      <input
-                        type="number"
-                        min={1}
-                        className="w-20 border rounded-md px-2 py-1 text-sm"
-                        value={item.quantity}
-                        onChange={(e) =>
-                          updateItem(index, {
-                            quantity:
-                              e.target.value === ""
-                                ? ""
-                                : Number(e.target.value),
-                          })
-                        }
-                        required
-                      />
+                        {/* Dropdown suggestions */}
+                        {activeRowIndex === index && (
+                          <div className="absolute z-20 mt-1 w-full rounded-md border border-slate-200 bg-white shadow-lg max-h-48 overflow-auto">
+                            {suggestions.length === 0 ? (
+                              <div className="px-3 py-1.5 text-xs text-slate-500">
+                                ไม่พบอุปกรณ์ที่ตรงกับคำค้นหา
+                              </div>
+                            ) : (
+                              suggestions.map((eq) => (
+                                <button
+                                  type="button"
+                                  key={eq.id}
+                                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-sky-50"
+                                  // ใช้ onMouseDown เพื่อให้ทำงานก่อน blur
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    updateItem(index, {
+                                      equipmentId: eq.id,
+                                      keyword: `${eq.name}${
+                                        eq.code ? ` (${eq.code})` : ""
+                                      }`,
+                                    });
+                                    setActiveRowIndex(null);
+                                  }}
+                                >
+                                  <div className="font-medium text-slate-900">
+                                    {eq.name}{" "}
+                                    {eq.code ? `(${eq.code})` : ""}
+                                  </div>
+                                  <div className="text-[11px] text-slate-500">
+                                    คงเหลือ{" "}
+                                    {eq.availableQuantity.toLocaleString(
+                                      "th-TH"
+                                    )}{" "}
+                                    {eq.unit ?? ""}
+                                  </div>
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </div>
 
+                      {/* จำนวน */}
+                      <div className="flex flex-col gap-0.5">
+                        <label className="block text-[11px] font-medium text-slate-600">
+                          จำนวน
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          className="w-20 border rounded-md px-2 py-1 text-sm"
+                          value={item.quantity}
+                          onChange={(e) =>
+                            updateItem(index, {
+                              quantity:
+                                e.target.value === ""
+                                  ? ""
+                                  : Number(e.target.value),
+                            })
+                          }
+                          required
+                        />
+                      </div>
+
+                      {/* หน่วย + คงเหลือ */}
                       <span className="text-xs text-gray-600">
                         {selectedEq
                           ? `${selectedEq.unit ?? ""} (คงเหลือ ${

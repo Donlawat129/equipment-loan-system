@@ -1,4 +1,4 @@
-// src\app\dashboard\history\page.tsx
+// src/app/dashboard/history/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -30,6 +30,11 @@ type LoanRow = {
   createdAt: Date | null;
   neededDate: Date | null; // map จาก expectedReturnDate
   note: string; // map จาก reason
+
+  // 🔹 ฟิลด์ใหม่
+  academicYearCode?: string;
+  requestDate?: string;
+  departmentCode?: string;
 };
 
 type LoanDocData = {
@@ -43,6 +48,10 @@ type LoanDocData = {
   createdAt?: Timestamp;
   expectedReturnDate?: Timestamp | string | null;
   reason?: string;
+
+  academicYearCode?: string;
+  requestDate?: string;
+  departmentCode?: string;
 };
 
 const TH_MONTH_SHORT = [
@@ -101,7 +110,7 @@ export default function LoanHistoryPage() {
         return false;
       }
 
-      // filter วันที่เริ่มต้น
+      // filter วันที่เริ่มต้น (createdAt)
       if (dateFrom) {
         const from = new Date(dateFrom);
         from.setHours(0, 0, 0, 0);
@@ -121,7 +130,7 @@ export default function LoanHistoryPage() {
         }
       }
 
-      // filter คำค้นหา
+      // filter คำค้นหา (ชื่ออุปกรณ์, รหัส, เหตุผล, ปีการศึกษา, แผนก, วันที่เอกสาร)
       const trimmed = searchText.trim().toLowerCase();
       if (!trimmed) {
         return true;
@@ -131,8 +140,11 @@ export default function LoanHistoryPage() {
         .map((it) => `${it.equipmentName} ${it.code ?? ""}`)
         .join(" ");
       const noteText = row.note ?? "";
+      const docInfoText = `${row.academicYearCode ?? ""} ${
+        row.departmentCode ?? ""
+      } ${row.requestDate ?? ""}`;
 
-      const haystack = `${itemsText} ${noteText}`.toLowerCase();
+      const haystack = `${itemsText} ${noteText} ${docInfoText}`.toLowerCase();
 
       return haystack.includes(trimmed);
     });
@@ -196,6 +208,10 @@ export default function LoanHistoryPage() {
             createdAt,
             neededDate,
             note: data.reason ?? "",
+
+            academicYearCode: data.academicYearCode ?? "",
+            requestDate: data.requestDate ?? "",
+            departmentCode: data.departmentCode ?? "",
           };
         });
 
@@ -248,14 +264,14 @@ export default function LoanHistoryPage() {
         <div className="mt-4 flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-[200px]">
             <label className="mb-1 block text-xs font-medium text-slate-600">
-              ค้นหาชื่ออุปกรณ์ / รหัส / เหตุผล
+              ค้นหาชื่ออุปกรณ์ / รหัส / เหตุผล / ปีการศึกษา / แผนก
             </label>
             <input
               type="text"
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               className="w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-              placeholder="เช่น โน้ตบุ๊ก, PJ-001 หรือ คำอธิบาย"
+              placeholder="เช่น โน้ตบุ๊ก, PJ-001, 2568, IT01"
             />
           </div>
 
@@ -280,7 +296,7 @@ export default function LoanHistoryPage() {
 
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">
-              จากวันที่
+              จากวันที่ (สร้างคำขอ)
             </label>
             <input
               type="date"
@@ -292,7 +308,7 @@ export default function LoanHistoryPage() {
 
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">
-              ถึงวันที่
+              ถึงวันที่ (สร้างคำขอ)
             </label>
             <input
               type="date"
@@ -351,10 +367,7 @@ export default function LoanHistoryPage() {
                       </p>
                     ) : (
                       row.items.map((it, idx) => (
-                        <p
-                          key={idx}
-                          className="text-sm text-slate-900"
-                        >
+                        <p key={idx} className="text-sm text-slate-900">
                           {it.equipmentName}
                           {it.code ? ` (${it.code})` : ""} —{" "}
                           {it.quantity.toLocaleString("th-TH")}{" "}
@@ -374,6 +387,7 @@ export default function LoanHistoryPage() {
                   </span>
                 </div>
 
+                {/* แสดงข้อมูลเอกสาร */}
                 <div className="space-y-0.5 text-xs text-slate-500">
                   <p>
                     ขอเบิกเมื่อ:{" "}
@@ -381,6 +395,26 @@ export default function LoanHistoryPage() {
                       {formatThaiDate(row.createdAt)}
                     </span>
                   </p>
+                  {row.requestDate && (
+                    <p>
+                      วันที่เอกสาร:{" "}
+                      <span className="font-medium text-slate-700">
+                        {row.requestDate}
+                      </span>
+                    </p>
+                  )}
+                  {(row.academicYearCode || row.departmentCode) && (
+                    <p>
+                      ปีการศึกษา:{" "}
+                      <span className="font-medium text-slate-700">
+                        {row.academicYearCode || "-"}
+                      </span>{" "}
+                      · แผนก:{" "}
+                      <span className="font-medium text-slate-700">
+                        {row.departmentCode || "-"}
+                      </span>
+                    </p>
+                  )}
                   {row.neededDate && (
                     <p>
                       วันที่คาดว่าจะคืน:{" "}

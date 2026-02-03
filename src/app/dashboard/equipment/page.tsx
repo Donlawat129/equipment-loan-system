@@ -1,5 +1,5 @@
 "use client";
-
+// src\app\dashboard\equipment\page.tsx
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, type User } from "firebase/auth";
