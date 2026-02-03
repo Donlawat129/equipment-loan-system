@@ -241,13 +241,19 @@ export default function AllLoanHistoryPage() {
 
       // filter ปีการศึกษา
       const yearFilter = academicYearFilter.trim().toLowerCase();
-      if (yearFilter && !(row.academicYearCode ?? "").toLowerCase().includes(yearFilter)) {
+      if (
+        yearFilter &&
+        !(row.academicYearCode ?? "").toLowerCase().includes(yearFilter)
+      ) {
         return false;
       }
 
       // filter แผนก
       const deptFilter = departmentFilter.trim().toLowerCase();
-      if (deptFilter && !(row.departmentCode ?? "").toLowerCase().includes(deptFilter)) {
+      if (
+        deptFilter &&
+        !(row.departmentCode ?? "").toLowerCase().includes(deptFilter)
+      ) {
         return false;
       }
 
@@ -349,47 +355,71 @@ export default function AllLoanHistoryPage() {
         </div>
 
         {/* Filter bar */}
-        <div className="mt-4 grid gap-3 md:grid-cols-3 lg:grid-cols-5 items-end">
-          <div className="col-span-2">
-            <label className="mb-1 block text-xs font-medium text-slate-600">
-              ค้นหาผู้ขอ / ชื่ออุปกรณ์ / รหัส / เหตุผล / ปีการศึกษา / แผนก
-            </label>
-            <input
-              type="text"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-              placeholder="เช่น user@example.com, โน้ตบุ๊ก, PJ-001, 2568, IT01"
-            />
+        <div className="mt-4 space-y-3">
+          {/* แถวที่ 1: ช่องค้นหา + สถานะ อยู่บรรทัดเดียวกัน */}
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex-1 min-w-[220px]">
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                ค้นหาผู้ขอ / ชื่ออุปกรณ์ / รหัส / เหตุผล / ปีการศึกษา / แผนก
+              </label>
+              <input
+                type="text"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                placeholder="เช่น user@example.com, โน้ตบุ๊ก, PJ-001, 2568, IT01"
+              />
+            </div>
+
+            <div className="w-full sm:w-auto sm:min-w-[200px] md:min-w-[220px]">
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                สถานะ
+              </label>
+              <select
+                value={statusFilter}
+                onChange={(e) =>
+                  setStatusFilter(e.target.value as LoanStatus | "all")
+                }
+                className="w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+              >
+                <option value="all">ทุกสถานะ</option>
+                <option value="pending">{STATUS_LABEL.pending}</option>
+                <option value="approved">{STATUS_LABEL.approved}</option>
+                <option value="rejected">{STATUS_LABEL.rejected}</option>
+                <option value="cancelled">{STATUS_LABEL.cancelled}</option>
+                <option value="returned">{STATUS_LABEL.returned}</option>
+              </select>
+            </div>
           </div>
 
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">
-              ปีการศึกษา
-            </label>
-            <input
-              type="text"
-              value={academicYearFilter}
-              onChange={(e) => setAcademicYearFilter(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-              placeholder="เช่น 2568"
-            />
-          </div>
+          {/* แถวที่ 2: ปีการศึกษา / รหัสแผนก / จากวันที่ / ถึงวันที่ */}
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4 items-end">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                ปีการศึกษา
+              </label>
+              <input
+                type="text"
+                value={academicYearFilter}
+                onChange={(e) => setAcademicYearFilter(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                placeholder="เช่น 2568"
+              />
+            </div>
 
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">
-              รหัสแผนก
-            </label>
-            <input
-              type="text"
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-              placeholder="เช่น IT01"
-            />
-          </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-slate-600">
+                รหัสแผนก
+              </label>
+              <input
+                type="text"
+                value={departmentFilter}
+                onChange={(e) => setDepartmentFilter(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
+                placeholder="เช่น IT01"
+              />
+            </div>
 
-          <div className="flex flex-col gap-2">
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">
                 จากวันที่ (สร้างคำขอ)
@@ -401,6 +431,7 @@ export default function AllLoanHistoryPage() {
                 className="w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
               />
             </div>
+
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600">
                 ถึงวันที่ (สร้างคำขอ)
@@ -412,26 +443,6 @@ export default function AllLoanHistoryPage() {
                 className="w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
               />
             </div>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">
-              สถานะ
-            </label>
-            <select
-              value={statusFilter}
-              onChange={(e) =>
-                setStatusFilter(e.target.value as LoanStatus | "all")
-              }
-              className="w-full rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-300 focus:border-sky-300"
-            >
-              <option value="all">ทุกสถานะ</option>
-              <option value="pending">{STATUS_LABEL.pending}</option>
-              <option value="approved">{STATUS_LABEL.approved}</option>
-              <option value="rejected">{STATUS_LABEL.rejected}</option>
-              <option value="cancelled">{STATUS_LABEL.cancelled}</option>
-              <option value="returned">{STATUS_LABEL.returned}</option>
-            </select>
           </div>
         </div>
 
@@ -521,10 +532,7 @@ export default function AllLoanHistoryPage() {
                           <>
                             <div>
                               {firstItem.equipmentName}
-                              {firstItem.code
-                                ? ` (${firstItem.code})`
-                                : ""}{" "}
-                              —{" "}
+                              {firstItem.code ? ` (${firstItem.code})` : ""} —{" "}
                               {firstItem.quantity.toLocaleString("th-TH")}{" "}
                               {firstItem.unit ?? ""}
                             </div>
