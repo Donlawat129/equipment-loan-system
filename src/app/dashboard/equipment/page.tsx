@@ -311,13 +311,13 @@ export default function EquipmentPage() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <span className="inline-flex items-center rounded-full bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700 border border-sky-100">
-              จัดการอุปกรณ์ในคลัง
+              จัดการอุปกรณ์ที่ใช้สำหรับเบิก
             </span>
             <h1 className="mt-2 text-xl font-semibold text-slate-900">
-              จัดการอุปกรณ์ที่ใช้สำหรับเบิก / กู้ยืม
+              จัดการอุปกรณ์ที่ใช้สำหรับเบิก-ยืมคืนอุปกรณ์
             </h1>
             <p className="mt-1 text-sm text-slate-600">
-              เพิ่ม แก้ไข ปิดใช้งาน หรือลบอุปกรณ์ที่สามารถให้พนักงานเบิก/กู้ยืมได้
+              เพิ่ม แก้ไข ปิดใช้งาน หรือลบอุปกรณ์
             </p>
           </div>
 
@@ -460,7 +460,7 @@ export default function EquipmentPage() {
 
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-700">
-                  รหัสอุปกรณ์ (ถ้ามี)
+                  รหัสอุปกรณ์
                 </label>
                 <input
                   type="text"

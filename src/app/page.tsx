@@ -1,9 +1,13 @@
-// src\app\page.tsx
+// src/app/page.tsx
 "use client";
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword, type User } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  type User,
+} from "firebase/auth";
 import type { FirebaseError } from "firebase/app";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
@@ -27,42 +31,78 @@ async function ensureUserProfile(user: User) {
 export default function HomePage() {
   const router = useRouter();
 
+  const [mode, setMode] = useState<"login" | "register">("login");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleLogin(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
-      const userCred = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      if (mode === "login") {
+        // ---------------- เข้าสู่ระบบ ----------------
+        const userCred = await signInWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
 
-      // ✅ สร้าง profile + role ถ้ายังไม่มี
-      await ensureUserProfile(userCred.user);
+        // ✅ สร้าง profile + role ถ้ายังไม่มี
+        await ensureUserProfile(userCred.user);
 
-      console.log("Login success:", userCred.user);
+        console.log("Login success:", userCred.user);
+        router.push("/dashboard");
+      } else {
+        // ---------------- สมัครใช้งาน ----------------
+        if (password.length < 6) {
+          setError("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร");
+          return;
+        }
 
-      router.push("/dashboard");
+        const userCred = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+
+        // ✅ สร้าง profile + role = staff
+        await ensureUserProfile(userCred.user);
+
+        console.log("Register success:", userCred.user);
+        router.push("/dashboard");
+      }
     } catch (err) {
-      const error = err as FirebaseError;
+      const firebaseErr = err as FirebaseError;
 
-      console.error("Login error:", error);
-      let msg = "เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบอีเมลและรหัสผ่าน";
+      console.error("Auth error:", firebaseErr);
 
-      if (error.code === "auth/user-not-found") {
-        msg = "ไม่พบบัญชีผู้ใช้นี้";
-      } else if (error.code === "auth/wrong-password") {
-        msg = "รหัสผ่านไม่ถูกต้อง";
-      } else if (error.code === "auth/invalid-email") {
-        msg = "รูปแบบอีเมลไม่ถูกต้อง";
+      let msg =
+        mode === "login"
+          ? "เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบอีเมลและรหัสผ่าน"
+          : "สมัครใช้งานไม่สำเร็จ กรุณาลองใหม่อีกครั้ง";
+
+      if (mode === "login") {
+        if (firebaseErr.code === "auth/user-not-found") {
+          msg = "ไม่พบบัญชีผู้ใช้นี้";
+        } else if (firebaseErr.code === "auth/wrong-password") {
+          msg = "รหัสผ่านไม่ถูกต้อง";
+        } else if (firebaseErr.code === "auth/invalid-email") {
+          msg = "รูปแบบอีเมลไม่ถูกต้อง";
+        }
+      } else {
+        if (firebaseErr.code === "auth/email-already-in-use") {
+          msg = "อีเมลนี้มีบัญชีอยู่แล้ว กรุณาเข้าสู่ระบบ";
+        } else if (firebaseErr.code === "auth/weak-password") {
+          msg = "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร";
+        } else if (firebaseErr.code === "auth/invalid-email") {
+          msg = "รูปแบบอีเมลไม่ถูกต้อง";
+        }
       }
 
       setError(msg);
@@ -70,6 +110,8 @@ export default function HomePage() {
       setLoading(false);
     }
   }
+
+  const isLogin = mode === "login";
 
   return (
     <main className="min-h-screen bg-linear-to-br from-sky-50 via-indigo-50 to-slate-100 flex items-center justify-center px-4">
@@ -79,14 +121,18 @@ export default function HomePage() {
             ระบบภายในองค์กร · Equipment Loan
           </span>
           <h1 className="text-2xl font-semibold text-slate-900">
-            ระบบเบิก / กู้ยืมอุปกรณ์
+            {isLogin
+              ? "เข้าสู่ระบบเบิก / กู้ยืมอุปกรณ์"
+              : "สมัครใช้งานระบบเบิก / กู้ยืมอุปกรณ์"}
           </h1>
           <p className="text-sm text-slate-500 max-w-sm">
-            กรุณาเข้าสู่ระบบด้วยบัญชีที่ได้รับจากผู้ดูแลระบบ เพื่อจัดการการเบิก/กู้ยืมอุปกรณ์อย่างเป็นระบบ
+            ใช้อีเมลและรหัสผ่านในการ{" "}
+            {isLogin ? "เข้าสู่ระบบ" : "สมัครใช้งานใหม่สำหรับผู้ใช้ทั่วไป"}{" "}
+            หากมีบัญชีอยู่แล้วสามารถสลับโหมดที่ด้านล่าง
           </p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1 text-slate-700">
               อีเมล
@@ -126,8 +172,47 @@ export default function HomePage() {
             disabled={loading}
             className="w-full rounded-lg py-2.5 text-sm font-medium text-white bg-linear-to-br from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 shadow-md shadow-indigo-100 disabled:opacity-60 disabled:shadow-none transition"
           >
-            {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+            {loading
+              ? isLogin
+                ? "กำลังเข้าสู่ระบบ..."
+                : "กำลังสมัครใช้งาน..."
+              : isLogin
+              ? "เข้าสู่ระบบ"
+              : "สมัครใช้งาน"}
           </button>
+
+          {/* ลิงก์สลับโหมด login / register */}
+          <div className="pt-1 text-center text-xs text-slate-500">
+            {isLogin ? (
+              <>
+                ยังไม่มีบัญชีใช่ไหม?{" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("register");
+                    setError(null);
+                  }}
+                  className="text-sky-600 hover:underline font-medium"
+                >
+                  สมัครใช้งาน
+                </button>
+              </>
+            ) : (
+              <>
+                มีบัญชีอยู่แล้ว?{" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("login");
+                    setError(null);
+                  }}
+                  className="text-sky-600 hover:underline font-medium"
+                >
+                  กลับไปเข้าสู่ระบบ
+                </button>
+              </>
+            )}
+          </div>
         </form>
       </div>
     </main>

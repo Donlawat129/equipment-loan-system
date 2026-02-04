@@ -15,6 +15,7 @@ import {
   runTransaction,
   serverTimestamp,
   type Timestamp,
+  type DocumentReference,
 } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 
@@ -191,6 +192,7 @@ export default function ApprovalsPage() {
     });
   }
 
+  // ✅ แก้ตามกฎ Firestore: อ่านทั้งหมดก่อน แล้วค่อยเขียน
   async function handleApprove(req: LoanRequest) {
     if (!user) return;
     setActionLoadingId(req.id);
@@ -214,6 +216,13 @@ export default function ApprovalsPage() {
           throw new Error("คำขอนี้ถูกดำเนินการไปแล้ว");
         }
 
+        // 🧠 รอบที่ 1: อ่าน equipment ทั้งหมด เก็บไว้ก่อน (ยังไม่ update)
+        const eqSnapshots: {
+          ref: DocumentReference;
+          data: EquipmentDoc;
+          item: LoanItem;
+        }[] = [];
+
         for (const item of reqData.items) {
           const eqRef = doc(db, "equipment", item.equipmentId);
           const eqSnap = await tx.get(eqRef);
@@ -235,7 +244,13 @@ export default function ApprovalsPage() {
             );
           }
 
-          tx.update(eqRef, {
+          eqSnapshots.push({ ref: eqRef, data: eqData, item });
+        }
+
+        // 🧠 รอบที่ 2: เขียนค่า (update stock + request status)
+        for (const { ref, data, item } of eqSnapshots) {
+          const available = data.availableQuantity ?? 0;
+          tx.update(ref, {
             availableQuantity: available - item.quantity,
           });
         }
@@ -247,6 +262,7 @@ export default function ApprovalsPage() {
         });
       });
 
+      // ลบออกจาก list ในหน้า UI
       setRequests((prev) => prev.filter((r) => r.id !== req.id));
     } catch (err) {
       console.error("Approve error:", err);

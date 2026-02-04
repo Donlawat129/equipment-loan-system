@@ -268,10 +268,10 @@ export default function CreateRequestPage() {
         <div className="flex items-start justify-between gap-4 mb-2">
           <div className="space-y-1">
             <span className="inline-flex items-center rounded-full bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700 border border-sky-100">
-              สร้างคำขอเบิก / กู้ยืม
+              สร้างคำขอทำเบิก-ยืมคืนอุปกรณ์
             </span>
             <h1 className="text-xl font-semibold text-slate-900">
-              ฟอร์มสร้างคำขอเบิก / กู้ยืมอุปกรณ์
+              ฟอร์มคำขอทำเบิก-ยืมคืนอุปกรณ์
             </h1>
             <p className="text-xs text-slate-500">
               กรอกรายละเอียดเอกสาร เลือกอุปกรณ์ ระบุจำนวน และเหตุผลในการเบิก
@@ -311,19 +311,6 @@ export default function CreateRequestPage() {
               ข้อมูลเอกสารคำขอ
             </h2>
             <div className="grid gap-3 md:grid-cols-3">
-              <div>
-                <label className="block text-xs font-medium mb-1 text-slate-700">
-                  รหัสปีการศึกษา
-                </label>
-                <input
-                  type="text"
-                  className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-sky-200"
-                  value={academicYearCode}
-                  onChange={(e) => setAcademicYearCode(e.target.value)}
-                  placeholder="เช่น 2568"
-                  required
-                />
-              </div>
 
               <div>
                 <label className="block text-xs font-medium mb-1 text-slate-700">
@@ -334,6 +321,20 @@ export default function CreateRequestPage() {
                   className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-sky-200"
                   value={requestDate}
                   onChange={(e) => setRequestDate(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium mb-1 text-slate-700">
+                  รหัสปีการศึกษา
+                </label>
+                <input
+                  type="text"
+                  className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring focus:ring-sky-200"
+                  value={academicYearCode}
+                  onChange={(e) => setAcademicYearCode(e.target.value)}
+                  placeholder="เช่น 2568"
                   required
                 />
               </div>
@@ -549,7 +550,7 @@ export default function CreateRequestPage() {
             {/* วันที่คาดว่าจะคืน */}
             <div>
               <label className="block text-sm font-medium mb-1">
-                วันที่คาดว่าจะคืน (ถ้ามี)
+                วันที่คาดว่าจะคืน
               </label>
               <input
                 type="date"
